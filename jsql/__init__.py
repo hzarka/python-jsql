@@ -6,14 +6,17 @@ import re
 import logging
 
 
-def sql(engine, template, **data):
-    tmpl = jenv.from_string(template).render(**data)
-    return SqlProxy(execute_sql(engine, tmpl, **data))
+def sql(engine, template, **params):
+    tmpl = render(template, params)
+    query, params = format_query_with_list_params(query, params)
+    return SqlProxy(execute_sql(engine, query, params))
 
+def render(template, params):
+    return jenv.from_string(template).render(**params)
 
 logger = logging.getLogger('jsql')
 
-SAFE_RE = re.compile('[A-Za-z0-9_]+')
+SAFE_RE = re.compile('^[A-Za-z0-9_]+$')
 def assert_safe_filter(value):
     if isinstance(value, Markup):
         return value
@@ -34,13 +37,24 @@ jenv = jinja2.Environment(autoescape=False,
             extensions=(AssertSafeExtension,))
 jenv.filters["assert_safe"] = assert_safe_filter
 
-def execute_sql(engine, query, **kwargs):
+def execute_sql(engine, query, params):
     from sqlalchemy.sql import text
-    query, kwargs = format_query_with_list_params(query, kwargs)
     q = text(query)
-
     is_session = 'session' in repr(engine.__class__).lower()
-    return engine.execute(q, params=kwargs) if is_session else engine.execute(q, **kwargs)
+    return engine.execute(q, params=params) if is_session else engine.execute(q, **params)
+
+def get_param_keys(query):
+    import re
+    return set(re.findall("(?P<key>:[a-zA-Z_]+_list)", query))
+
+def format_query_with_list_params(query, params):
+    keys = get_param_keys(query)
+    for key in keys:
+        if key.endswith('_tuple_list'):
+            query, params = _format_query_tuple_list_key(key, query, params)
+        else:
+            query, params = _format_query_list_key(key, query, params)
+    return query, params
 
 def _format_query_list_key(key, query, params):
     values = params.pop(key[1:])
@@ -67,16 +81,6 @@ def _format_query_tuple_list_key(key, query, params):
         new_keys.append("({})".format(", ".join(new_keys2)))
     new_keys_str = ", ".join(new_keys) or "null"
     query = query.replace(key, "({})".format(new_keys_str))
-    return query, params
-
-def format_query_with_list_params(query, params):
-    import re
-    keys = set(re.findall("(?P<key>:[a-zA-Z_]+_list)", query))
-    for key in keys:
-        if key.endswith('_tuple_list'):
-            query, params = _format_query_tuple_list_key(key, query, params)
-        else:
-            query, params = _format_query_list_key(key, query, params)
     return query, params
 
 class ObjProxy(object):
@@ -106,7 +110,6 @@ class SqlProxy(ObjProxy):
 
     def kv_map_iter(self):
         result = self._proxied
-        keys = result.keys()
         for r in result:
             yield (r[0], r[1])
 

@@ -7,7 +7,7 @@ import logging
 
 
 def sql(engine, template, **params):
-    tmpl = render(template, params)
+    query = render(template, params)
     query, params = format_query_with_list_params(query, params)
     return SqlProxy(execute_sql(engine, query, params))
 

@@ -2,6 +2,10 @@
 
 Lightweight wrapper around sqlalchemy + jinja2.
 
+```
+pip install jsql==0.3
+```
+
 ## Usage
 
 Check tests for examples. 
@@ -34,5 +38,5 @@ with engine.begin() as conn:
 1) Variables injected using `:var` will be escaped by SQL driver.
 1) Variables injected as `:var_list` will expect a list value and will be escaped by SQL driver for use as eg `id IN :id_list` (see `test_list_param`)
 1) Variables injected using `{{var}}` will be inserted directly into the query but will be checked against jsql.SAFE_RE (default `[A-Za-z0-9_]+`). This is intended for templating table names, limits, etc where SQL query placeholders are not allowed. (see `test_render`)
-1) Variables injected using `{{var | safe}}` will be inserted directly into the query without any checks (probably a bad idea) (see `test_render`)
+1) Variables injected using `{{var | dangerous}}` will be inserted directly into the query without any checks (probably a bad idea) (see `test_render`)
 

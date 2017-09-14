@@ -35,7 +35,11 @@ class AssertSafeExtension(jinja2.ext.Extension):
 
 jenv = jinja2.Environment(autoescape=False,
             extensions=(AssertSafeExtension,))
+
+# rename safe -> dangerous for easier grepping
+jenv.filters["dangerous"] = jenv.filters.pop('safe')
 jenv.filters["assert_safe"] = assert_safe_filter
+
 
 def execute_sql(engine, query, params):
     from sqlalchemy.sql import text

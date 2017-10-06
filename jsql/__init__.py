@@ -9,6 +9,10 @@ import six
 class UnsafeSqlException(Exception):
     pass
 
+NOT_DANGEROUS_RE = re.compile('^[A-Za-z0-9_]*$')
+def is_safe(value):
+    return NOT_DANGEROUS_RE.match(value)
+
 @six.python_2_unicode_compatible
 class DangerouslyInjectedSql(object):
     def __init__(self, value):
@@ -27,16 +31,14 @@ def render(template, params):
 
 logger = logging.getLogger('jsql')
 
-NOT_DANGEROUS_RE = re.compile('^[A-Za-z0-9_]*$')
 def assert_safe_filter(value):
     if value is None:
         return None
     if isinstance(value, DangerouslyInjectedSql):
         return value
     value = six.text_type(value)
-    if not NOT_DANGEROUS_RE.match(value):
+    if not is_safe(value):
         raise UnsafeSqlException('unsafe sql param "{}"'.format(value))
-    logger.error('safe "%s"', value)
     return value
 
 class AssertSafeExtension(jinja2.ext.Extension):

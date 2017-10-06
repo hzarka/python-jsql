@@ -3,7 +3,7 @@
 Lightweight wrapper around sqlalchemy + jinja2.
 
 ```
-pip install jsql==0.4
+pip install jsql==0.5
 ```
 
 ## Usage

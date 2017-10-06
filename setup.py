@@ -2,11 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='jsql',
-    version='0.3',
+    version='0.4',
     author='Hisham Zarka',
     author_email='hzarka@gmail.com',
     packages = find_packages(),
     package_dir = {'': '.'},
+    requires = ["six"],
+    install_requires = ["six"],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',

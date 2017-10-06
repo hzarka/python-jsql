@@ -4,7 +4,18 @@ from jinja2.lexer import Token
 from jinja2.utils import Markup
 import re
 import logging
+import six
 
+class UnsafeSqlException(Exception):
+    pass
+
+@six.python_2_unicode_compatible
+class DangerouslyInjectedSql(object):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value
 
 def sql(engine, template, **params):
     query = render(template, params)
@@ -16,12 +27,16 @@ def render(template, params):
 
 logger = logging.getLogger('jsql')
 
-SAFE_RE = re.compile('^[A-Za-z0-9_]+$')
+NOT_DANGEROUS_RE = re.compile('^[A-Za-z0-9_]*$')
 def assert_safe_filter(value):
-    if isinstance(value, Markup):
+    if value is None:
+        return None
+    if isinstance(value, DangerouslyInjectedSql):
         return value
-    if not SAFE_RE.match(value):
-        raise ValueError('unsafe sql param "{}"'.format(value))
+    value = six.text_type(value)
+    if not NOT_DANGEROUS_RE.match(value):
+        raise UnsafeSqlException('unsafe sql param "{}"'.format(value))
+    logger.error('safe "%s"', value)
     return value
 
 class AssertSafeExtension(jinja2.ext.Extension):
@@ -29,16 +44,23 @@ class AssertSafeExtension(jinja2.ext.Extension):
     def filter_stream(self, stream):
         for token in stream:
             if token.type == 'variable_end':
+                yield Token(token.lineno, 'rparen', ')')
                 yield Token(token.lineno, 'pipe', '|')
                 yield Token(token.lineno, 'name', 'assert_safe')
             yield token
+            if token.type == 'variable_begin':
+                yield Token(token.lineno, 'lparen', '(')
 
 jenv = jinja2.Environment(autoescape=False,
             extensions=(AssertSafeExtension,))
 
-# rename safe -> dangerous for easier grepping
-jenv.filters["dangerous"] = jenv.filters.pop('safe')
 jenv.filters["assert_safe"] = assert_safe_filter
+
+def dangerously_inject_sql(value):
+    return DangerouslyInjectedSql(value)
+
+jenv.filters["dangerously_inject_sql"] = dangerously_inject_sql
+jenv.globals["comma"] = DangerouslyInjectedSql(",")
 
 
 def execute_sql(engine, query, params):

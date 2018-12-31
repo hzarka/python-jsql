@@ -2,4 +2,5 @@
 *.egg-info
 *.pyc
 .cache
+.py*
 dist

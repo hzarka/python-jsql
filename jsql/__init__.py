@@ -5,6 +5,7 @@ from jinja2.utils import Markup
 import re
 import logging
 import six
+import itertools, collections
 
 class UnsafeSqlException(Exception):
     pass
@@ -27,6 +28,7 @@ def sql(engine, template, **params):
     return SqlProxy(execute_sql(engine, query, params))
 
 def render(template, params):
+    params['bindparam'] = params.get('bindparam', gen_bindparam(params))
     return jenv.from_string(template).render(**params)
 
 logger = logging.getLogger('jsql')
@@ -70,6 +72,23 @@ def execute_sql(engine, query, params):
     q = text(query)
     is_session = 'session' in repr(engine.__class__).lower()
     return engine.execute(q, params=params) if is_session else engine.execute(q, **params)
+
+BINDPARAM_PREFIX = 'bp'
+def gen_bindparam(params):
+    keygen = key_generator()
+    def bindparam(val):
+        key = keygen(BINDPARAM_PREFIX)
+        while key in params:
+            key = keygen(BINDPARAM_PREFIX)
+        params[key] = val
+        return key
+    return bindparam
+
+def key_generator():
+    keycnt = collections.defaultdict(itertools.count)
+    def gen_key(key):
+        return key + str(next(keycnt[key]))
+    return gen_key
 
 def get_param_keys(query):
     import re

@@ -23,9 +23,14 @@ class DangerouslyInjectedSql(object):
         return self.value
 
 def sql(engine, template, **params):
+    return sql_inner(engine, template, params)
+
+def sql_inner(engine, template, params):
     query = render(template, params)
     query, params = format_query_with_list_params(query, params)
     return SqlProxy(execute_sql(engine, query, params))
+
+sql_inner_original = sql_inner
 
 def render(template, params):
     params['bindparam'] = params.get('bindparam', gen_bindparam(params))

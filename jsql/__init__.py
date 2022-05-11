@@ -1,7 +1,6 @@
 import jinja2
 import jinja2.ext
 from jinja2.lexer import Token
-from jinja2.utils import Markup
 import re
 import logging
 import six

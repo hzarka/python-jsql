@@ -8,7 +8,7 @@ pip install jsql==0.7
 
 ## Usage
 
-Check tests for examples. 
+Check tests for examples.
 
 ```python
 from jsql import sql

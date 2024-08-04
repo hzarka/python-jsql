@@ -182,7 +182,7 @@ class SqlProxy(ObjProxy):
         result = self._proxied
         for r in result:
             yield (r[0], r[1])
-            
+
     def scalars_iter(self):
         result = self._proxied
         for r in result:

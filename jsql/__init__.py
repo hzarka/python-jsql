@@ -160,11 +160,29 @@ class SqlProxy(ObjProxy):
         for r in result:
             yield (r[0], dict((k, v) for k, v in zip(keys, r)))
 
+    def pk_map_many_iter(self, *keys, n=None, dict=dict, tuple=tuple):
+        result = self._proxied
+        all_keys = result.keys()
+        if n is None and len(keys) > 1:
+            for r in result:
+                yield tuple(r[k] for k in keys), dict((k, v) for k, v in zip(all_keys, r))
+        elif n is None and len(keys) == 1:
+            for r in result:
+                yield r[keys[0]], dict((k, v) for k, v in zip(all_keys, r))
+        elif n > 1:
+            for r in result:
+                yield tuple(r[k] for k in range(n)), dict((k, v) for k, v in zip(all_keys, r))
+        elif n == 1:
+            for r in result:
+                yield r[0], dict((k, v) for k, v in zip(all_keys, r))
+        else:
+            return None
+
     def kv_map_iter(self):
         result = self._proxied
         for r in result:
             yield (r[0], r[1])
-
+            
     def scalars_iter(self):
         result = self._proxied
         for r in result:
@@ -172,6 +190,9 @@ class SqlProxy(ObjProxy):
 
     def pk_map(self, dict=dict):
         return dict(self.pk_map_iter())
+
+    def pk_map_many(self, *keys, n=None, dict=dict, tuple=tuple):
+        return dict(self.pk_map_many_iter(*keys, n=n, dict=dict, tuple=tuple))
 
     def kv_map(self, dict=dict):
         return dict(self.kv_map_iter())
@@ -190,4 +211,3 @@ class SqlProxy(ObjProxy):
             return self.dicts(dict=dict)[0]
         except IndexError:
             return None
-

@@ -81,8 +81,8 @@ def execute_sql(engine, query, params):
 BINDPARAM_PREFIX = 'bp'
 def gen_bindparam(params):
     keygen = key_generator()
+    key = keygen(BINDPARAM_PREFIX)
     def bindparam(val):
-        key = keygen(BINDPARAM_PREFIX)
         while key in params:
             key = keygen(BINDPARAM_PREFIX)
         params[key] = val

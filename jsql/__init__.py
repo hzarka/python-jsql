@@ -188,6 +188,11 @@ class SqlProxy(ObjProxy):
         for r in result:
             yield r[0]
 
+    def tuples_iter(self, tuple=tuple):
+        result = self._proxied
+        for r in result:
+            yield tuple(r)
+
     def pk_map(self, dict=dict):
         return dict(self.pk_map_iter())
 
@@ -203,11 +208,27 @@ class SqlProxy(ObjProxy):
     def scalars(self):
         return list(self.scalars_iter())
 
+    def tuples(self, tuple=tuple):
+        # although supported natively since version 2.0
+        # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.tuples
+        # same as `scalars()` which was supported since version 1.4
+        # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.scalars
+        return list(self.tuples_iter(tuple=tuple))
+        
     def scalar_set(self):
         return set(self.scalars_iter())
+
+    def tuple_set(self):
+        return set(self.tuples_iter(tuple=tuple))
 
     def dict(self, dict=dict):
         try:
             return self.dicts(dict=dict)[0]
         except IndexError:
             return None
+
+    def tuple(self, tuple=tuple):
+        try:
+            return self.tuples(tuple=tuple)[0]
+        except IndexError:
+            return (None for _ in range(len(self._proxied.keys())))

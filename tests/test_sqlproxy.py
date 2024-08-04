@@ -15,7 +15,7 @@ class FakeResult():
 example = FakeResult(['id', 'name'], [
         (1, 'A'),
         (2, 'B'),
-        (3, 'C'),
+        (3, 'C')
     ])
 
 empty_example = FakeResult(['id', 'name'], [])
@@ -41,7 +41,7 @@ def test_kv_map():
     assert res.kv_map() == {
         1: 'A',
         2: 'B',
-        3: 'C',
+        3: 'C'
     }
 
 def test_pk_map():
@@ -52,11 +52,34 @@ def test_pk_map():
         3: {'id': 3, 'name': 'C'}
     }
 
+def test_pk_map_many():
+    res = jsql.SqlProxy(example)
+    assert res.pk_map_many('id', 'name') == {
+        (1, 'A'): {'id': 1, 'name': 'A'},
+        (2, 'B'): {'id': 2, 'name': 'B'},
+        (3, 'C'): {'id': 3, 'name': 'C'}
+    }
+
 def test_scalars():
     res = jsql.SqlProxy(example)
     assert res.scalars() == [1, 2, 3]
+
+def test_tuples():
+    res = jsql.SqlProxy(example)
+    assert res.tuples() == [
+        (1, 'A'),
+        (2, 'B'),
+        (3, 'C')
+    ]
 
 def test_scalar_set():
     res = jsql.SqlProxy(example)
     assert res.scalar_set() == {1, 2, 3}
 
+def test_tuple_set():
+    res = jsql.SqlProxy(example)
+    assert res.tuple_set() == {
+        (1, 'A'),
+        (2, 'B'),
+        (3, 'C')
+    }

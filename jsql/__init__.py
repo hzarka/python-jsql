@@ -115,7 +115,7 @@ def _format_query_list_key(key, query, params):
         new_key = '{}_{}'.format(key, i)
         new_keys.append(new_key)
         params[new_key[1:]] = value
-    new_keys_str = ", ".join(new_keys) or "null"
+    new_keys_str = ", ".join(new_keys) or "null"  # NOTE: ("SELECT 'xyz' WHERE 'abc' NOT IN :i_list", i_list=[]) -> expected: 'xyz' | output: None
     query = query.replace(key, "({})".format(new_keys_str))
     return query, params
 
@@ -131,7 +131,7 @@ def _format_query_tuple_list_key(key, query, params):
             new_keys2.append(new_key2)
             params[new_key2[1:]] = tuple_val
         new_keys.append("({})".format(", ".join(new_keys2)))
-    new_keys_str = ", ".join(new_keys) or "null"
+    new_keys_str = ", ".join(new_keys) or "null"  # NOTE: ("SELECT 'xyz' WHERE ('abc', '') NOT IN :i_tuple_list", i_tuple_list=[]) -> expected: 'xyz' | output: None
     query = query.replace(key, "({})".format(new_keys_str))
     return query, params
 

@@ -80,8 +80,8 @@ def execute_sql(engine, query, params):
 BINDPARAM_PREFIX = 'bp'
 def gen_bindparam(params):
     keygen = key_generator()
-    key = keygen(BINDPARAM_PREFIX)
     def bindparam(val):
+        key = keygen(BINDPARAM_PREFIX)
         while key in params:
             key = keygen(BINDPARAM_PREFIX)
         params[key] = val
@@ -159,23 +159,21 @@ class SqlProxy(ObjProxy):
         for r in result:
             yield (r[0], dict((k, v) for k, v in zip(keys, r)))
 
-    def pk_map_many_iter(self, *keys, n=None, dict=dict, tuple=tuple):
+    def pk_map_many_iter(self, *keys, n:int=None, dict=dict, tuple=tuple):
         result = self._proxied
         all_keys = result.keys()
-        if n is None and len(keys) > 1:
-            for r in result:
-                yield tuple(r[k] for k in keys), dict((k, v) for k, v in zip(all_keys, r))
-        elif n is None and len(keys) == 1:
-            for r in result:
-                yield r[keys[0]], dict((k, v) for k, v in zip(all_keys, r))
-        elif n > 1:
-            for r in result:
-                yield tuple(r[k] for k in range(n)), dict((k, v) for k, v in zip(all_keys, r))
-        elif n == 1:
-            for r in result:
-                yield r[0], dict((k, v) for k, v in zip(all_keys, r))
-        else:
-            return None
+        for r in result:
+            d = dict((k, v) for k, v in zip(all_keys, r))
+            if len(keys) == 1:
+                yield d[keys[0]], d
+            elif len(keys) > 1:
+                yield tuple(d[k] for k in keys), d
+            elif n == 1:
+                yield r[0], d
+            elif n and n > 1:
+                yield tuple(r[k] for k in range(n)), d
+            else:
+                raise ValueError('Expected either `n` as int >= 1 OR `keys` as a list of str arguments')
 
     def kv_map_iter(self):
         result = self._proxied
@@ -230,4 +228,4 @@ class SqlProxy(ObjProxy):
         try:
             return self.tuples(tuple=tuple)[0]
         except IndexError:
-            return (None for _ in range(len(self._proxied.keys())))
+            return tuple(None for _ in range(len(self._proxied.keys())))

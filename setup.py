@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='jsql',
-    version='0.7',
+    version='0.8',
     author='Hisham Zarka',
     author_email='hzarka@gmail.com',
     packages = find_packages(),

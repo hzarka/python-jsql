@@ -159,7 +159,7 @@ class SqlProxy(ObjProxy):
         for r in result:
             yield (r[0], dict((k, v) for k, v in zip(keys, r)))
 
-    def pk_map_many_iter(self, *keys, n:int=None, dict=dict, tuple=tuple):
+    def pks_map_iter(self, *keys, n:int=None, dict=dict, tuple=tuple):
         result = self._proxied
         all_keys = result.keys()
         for r in result:
@@ -193,8 +193,8 @@ class SqlProxy(ObjProxy):
     def pk_map(self, dict=dict):
         return dict(self.pk_map_iter())
 
-    def pk_map_many(self, *keys, n=None, dict=dict, tuple=tuple):
-        return dict(self.pk_map_many_iter(*keys, n=n, dict=dict, tuple=tuple))
+    def pks_map(self, *keys, n=None, dict=dict, tuple=tuple):
+        return dict(self.pks_map_iter(*keys, n=n, dict=dict, tuple=tuple))
 
     def kv_map(self, dict=dict):
         return dict(self.kv_map_iter())

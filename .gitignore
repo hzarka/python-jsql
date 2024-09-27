@@ -5,3 +5,5 @@
 .py*
 dist
 venv
+.venv
+__pycache__

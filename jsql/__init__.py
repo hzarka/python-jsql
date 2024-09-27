@@ -1,7 +1,6 @@
 import jinja2
 import jinja2.ext
 from jinja2.lexer import Token
-from jinja2.utils import Markup
 import re
 import logging
 import six
@@ -115,7 +114,7 @@ def _format_query_list_key(key, query, params):
         new_key = '{}_{}'.format(key, i)
         new_keys.append(new_key)
         params[new_key[1:]] = value
-    new_keys_str = ", ".join(new_keys) or "null"
+    new_keys_str = ", ".join(new_keys) or "null"  # NOTE: ("SELECT 'xyz' WHERE 'abc' NOT IN :i_list", i_list=[]) -> expected: 'xyz' | output: None
     query = query.replace(key, "({})".format(new_keys_str))
     return query, params
 
@@ -131,7 +130,7 @@ def _format_query_tuple_list_key(key, query, params):
             new_keys2.append(new_key2)
             params[new_key2[1:]] = tuple_val
         new_keys.append("({})".format(", ".join(new_keys2)))
-    new_keys_str = ", ".join(new_keys) or "null"
+    new_keys_str = ", ".join(new_keys) or "null"  # NOTE: ("SELECT 'xyz' WHERE ('abc', '') NOT IN :i_tuple_list", i_tuple_list=[]) -> expected: 'xyz' | output: None
     query = query.replace(key, "({})".format(new_keys_str))
     return query, params
 
@@ -160,6 +159,22 @@ class SqlProxy(ObjProxy):
         for r in result:
             yield (r[0], dict((k, v) for k, v in zip(keys, r)))
 
+    def pks_map_iter(self, *keys, n:int=None, dict=dict, tuple=tuple):
+        result = self._proxied
+        all_keys = result.keys()
+        for r in result:
+            d = dict((k, v) for k, v in zip(all_keys, r))
+            if len(keys) == 1:
+                yield d[keys[0]], d
+            elif len(keys) > 1:
+                yield tuple(d[k] for k in keys), d
+            elif n == 1:
+                yield r[0], d
+            elif n and n > 1:
+                yield tuple(r[k] for k in range(n)), d
+            else:
+                raise ValueError('Expected either `n` as int >= 1 OR `keys` as a list of str arguments')
+
     def kv_map_iter(self):
         result = self._proxied
         for r in result:
@@ -170,8 +185,16 @@ class SqlProxy(ObjProxy):
         for r in result:
             yield r[0]
 
+    def tuples_iter(self, tuple=tuple):
+        result = self._proxied
+        for r in result:
+            yield tuple(r)
+
     def pk_map(self, dict=dict):
         return dict(self.pk_map_iter())
+
+    def pks_map(self, *keys, n=None, dict=dict, tuple=tuple):
+        return dict(self.pks_map_iter(*keys, n=n, dict=dict, tuple=tuple))
 
     def kv_map(self, dict=dict):
         return dict(self.kv_map_iter())
@@ -182,8 +205,18 @@ class SqlProxy(ObjProxy):
     def scalars(self):
         return list(self.scalars_iter())
 
+    def tuples(self, tuple=tuple):
+        # although supported natively since version 2.0
+        # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.tuples
+        # same as `scalars()` which was supported since version 1.4
+        # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.scalars
+        return list(self.tuples_iter(tuple=tuple))
+        
     def scalar_set(self):
         return set(self.scalars_iter())
+
+    def tuple_set(self):
+        return set(self.tuples_iter(tuple=tuple))
 
     def dict(self, dict=dict):
         try:
@@ -191,3 +224,8 @@ class SqlProxy(ObjProxy):
         except IndexError:
             return None
 
+    def tuple(self, tuple=tuple):
+        try:
+            return self.tuples(tuple=tuple)[0]
+        except IndexError:
+            return tuple(None for _ in range(len(self._proxied.keys())))

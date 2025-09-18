@@ -3,7 +3,7 @@
 Lightweight wrapper around sqlalchemy + jinja2.
 
 ```
-pip install jsql==0.9
+pip install jsql==0.91
 ```
 
 ## Usage
@@ -40,4 +40,3 @@ with engine.begin() as conn:
 1) Variables injected as `:var_tuple_list` will expect a list of tuples and will be escaped by SQL driver for use as eg `(id1, id2) IN :id_tuple_list` (see `test_list_param`)
 1) Variables injected using `{{var}}` will be inserted directly into the query but will be checked against jsql.NOT_DANGEROUS_RE (default `[A-Za-z0-9_]+`). This is intended for templating table names, limits, etc where SQL query placeholders are not allowed. (see `test_render`)
 1) Variables injected using `{{var | dangerously_inject_sql }}` will be inserted directly into the query without any checks (probably a bad idea) (see `test_render`)
-

@@ -34,21 +34,55 @@ def sql_inner(engine, template, params):
 
 sql_inner_original = sql_inner
 
-MAX_CACHE_SIZE = int(os.getenv("JINJA_FROM_STRING_CACHE_SIZE", "4096"))
+DEFAULT_MAX_CACHE_SIZE = 4096
 
-@functools.lru_cache(maxsize=MAX_CACHE_SIZE)
-def compile_template_cached(template):
+
+def _make_cached_compiler(maxsize):
+    @functools.lru_cache(maxsize=maxsize)
+    def _compile(template):
+        return jenv.from_string(template)
+    return _compile
+
+compile_template_cached = _make_cached_compiler(DEFAULT_MAX_CACHE_SIZE)
+
+def compile_template_nocache(template):
     return jenv.from_string(template)
+
+compile_template = compile_template_cached
+
 
 def render(template, params):
     params['bindparam'] = params.get('bindparam', gen_bindparam(params))
+    return compile_template(template).render(**params)
 
-    if os.getenv("DISABLE_JINJA_FROM_STRING_CACHE", "0") in (
-            "1", "true", "True",
-    ):
-        return jenv.from_string(template).render(**params)
 
-    return compile_template_cached(template).render(**params)
+def enable_template_cache(maxsize=DEFAULT_MAX_CACHE_SIZE):
+    """Enable caching with the given size by swapping the function reference."""
+    global compile_template, compile_template_cached
+    compile_template_cached = _make_cached_compiler(maxsize)
+    compile_template = compile_template_cached
+
+
+def disable_template_cache():
+    """Disable caching by swapping to the non-cached implementation."""
+    global compile_template
+    compile_template = compile_template_nocache
+
+
+def clear_template_cache():
+    """Clear the current cached compiler if in cached mode."""
+    try:
+        compile_template_cached.cache_clear()
+    except Exception:
+        pass
+
+
+def template_cache_info():
+    """Return cache info if in cached mode; else None."""
+    try:
+        return compile_template_cached.cache_info()
+    except Exception:
+        return None
 
 logger = logging.getLogger('jsql')
 

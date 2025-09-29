@@ -1,3 +1,4 @@
+import functools
 import jinja2
 import jinja2.ext
 from jinja2.lexer import Token
@@ -31,9 +32,16 @@ def sql_inner(engine, template, params):
 
 sql_inner_original = sql_inner
 
+
+def compile_template_nocache(template):
+    return jenv.from_string(template)
+
+# disable cache: jsql.compile_template = jsql.compile_template_nocache
+compile_template = functools.lru_cache(maxsize=64)(compile_template_nocache)
+
 def render(template, params):
     params['bindparam'] = params.get('bindparam', gen_bindparam(params))
-    return jenv.from_string(template).render(**params)
+    return compile_template(template).render(**params)
 
 logger = logging.getLogger('jsql')
 
@@ -211,7 +219,7 @@ class SqlProxy(ObjProxy):
         # same as `scalars()` which was supported since version 1.4
         # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.scalars
         return list(self.tuples_iter(tuple=tuple))
-        
+
     def scalar_set(self):
         return set(self.scalars_iter())
 

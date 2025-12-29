@@ -84,6 +84,7 @@ jenv.filters["dangerously_inject_sql"] = dangerously_inject_sql
 jenv.globals["comma"] = DangerouslyInjectedSql(",")
 
 def execute_sql(engine, query, params):
+    from sqlalchemy.engine import Engine
     from sqlalchemy.sql import text
     q = text(query)
     

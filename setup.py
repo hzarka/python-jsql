@@ -7,8 +7,8 @@ setup(
     author_email='hzarka@gmail.com',
     packages = find_packages(),
     package_dir = {'': '.'},
-    requires = ["six"],
-    install_requires = ["six"],
+    requires = ["six", "packaging"],
+    install_requires = ["six", "packaging"],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',

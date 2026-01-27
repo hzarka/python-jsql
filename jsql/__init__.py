@@ -6,6 +6,10 @@ import re
 import logging
 import six
 import itertools, collections
+import sqlalchemy
+from packaging import version
+
+_SA_VERSION = version.parse(sqlalchemy.__version__)
 
 class UnsafeSqlException(Exception):
     pass
@@ -81,7 +85,12 @@ jenv.globals["comma"] = DangerouslyInjectedSql(",")
 
 def execute_sql(engine, query, params):
     from sqlalchemy.sql import text
+    from sqlalchemy.engine import Engine
     q = text(query)
+    if _SA_VERSION.major >= 2:
+        if isinstance(engine, Engine):
+            raise TypeError("SQLAlchemy 2.0 removed Engine.execute(). Pass a Connection instead.")
+        return engine.execute(q, params)
     is_session = 'session' in repr(engine.__class__).lower()
     return engine.execute(q, params=params) if is_session else engine.execute(q, **params)
 
